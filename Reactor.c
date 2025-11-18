@@ -8,9 +8,6 @@
 #include <unistd.h>
 
 #include "Reactor.h"
-#include "jni_md.h"
-
-void assert(int pred, char* err);
 
 void assert(int pred, char* err) {
     if (pred)
@@ -73,8 +70,22 @@ JNIEXPORT void JNICALL Java_Reactor_reactor_1run(JNIEnv* env, jobject _this, jlo
     watcher_t *w = ev->data.ptr;
 
     jclass callback_class = (*env)->GetObjectClass(env, w->callback);
-    jmethodID callback_id = (*env)->GetMethodID(env, callback_class, "onReady", "(II)V");
-    (*env)->CallVoidMethod(env, w->callback, callback_id, w->fd, ev->events);
+    assert(callback_class != NULL, "Error while trying to get callback class");
+
+    jmethodID callback_id = (*env)->GetMethodID(env, callback_class, "accept", "(Ljava/lang/Object;Ljava/lang/Object;)V");
+    assert(callback_id != NULL, "Error while trying to get callback method id");
+
+    jclass integer_class = (*env)->FindClass(env, "java/lang/Integer");
+    assert(integer_class != NULL, "Error while trying to get the integer class");
+
+    jmethodID integer_init = (*env)->GetMethodID(env, integer_class, "<init>", "(I)V");
+    assert(callback_class != NULL, "Error while trying to get integer init method");
+
+    jobject jfd = (*env)->NewObject(env, integer_class, integer_init, w->fd);
+    jobject jevents = (*env)->NewObject(env, integer_class, integer_init, ev->events);
+
+    (*env)->CallVoidMethod(env, w->callback, callback_id, jfd, jevents);
+
     (*env)->DeleteLocalRef(env, callback_class);
   }
 }

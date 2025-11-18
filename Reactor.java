@@ -1,15 +1,15 @@
+import java.util.function.BiConsumer;
 import java.util.Random;
 
 public class Reactor {
     public static final int EPOLLIN  = 0x001;
     public static final int EPOLLOUT = 0x004;
 
-    public interface WatcherCb { void onReady(int fd, int events); }
     public native long create_reactor(int max_events);
     public native void free_reactor(long reactor_ptr);
     public native void reactor_run(long reactor_ptr, int timeout);
 
-    public native long create_watcher(long reactor_ptr, int fd, int events, WatcherCb callback);
+    public native long create_watcher(long reactor_ptr, int fd, int events, BiConsumer<Integer, Integer> callback);
     public native void free_watcher(long watcher);
 
     public native int create_eventfd();
@@ -27,16 +27,16 @@ public class Reactor {
 
         long reactor_ptr = reactor.create_reactor(16);
         int efd1 = reactor.create_eventfd();
-        WatcherCb wcb1 = (fd, events) -> {
+        BiConsumer<Integer, Integer> wcb1 = (fd, events) -> {
             long value = reactor.read_eventfd(fd);
-            System.out.println("Value of ping - 1:" + value);
+            System.out.println("Value of ping - 1: " + value);
         };
         long w1 = reactor.create_watcher(reactor_ptr, efd1, Reactor.EPOLLIN, wcb1);
 
         int efd2 = reactor.create_eventfd();
-        WatcherCb wcb2 = (fd, events) -> {
+        BiConsumer<Integer, Integer> wcb2 = (fd, events) -> {
             long value = reactor.read_eventfd(fd);
-            System.out.println("Value of ping - 2:" + value);
+            System.out.println("Value of ping - 2: " + value);
         };
         long w2 = reactor.create_watcher(reactor_ptr, efd2, Reactor.EPOLLIN, wcb2);
 
