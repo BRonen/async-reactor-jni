@@ -9,7 +9,7 @@
       in
       {
         devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [ clojure openjdk21 ];
+          buildInputs = with pkgs; [ clojure openjdk21 liburing ];
           shellHook = ''
             export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd);
           '';
