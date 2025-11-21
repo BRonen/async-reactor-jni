@@ -4,9 +4,6 @@ import java.util.function.BiConsumer;
 import java.util.function.LongConsumer;
 
 public class Reactor {
-    public static final int EPOLLIN  = 0x001;
-    public static final int EPOLLOUT = 0x004;
-
     public static final int RDONLY = 0x0000;
     public static final int WRONLY = 0x0001;
     public static final int RDWR   = 0x0002;
