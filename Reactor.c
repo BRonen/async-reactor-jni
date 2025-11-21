@@ -143,14 +143,14 @@ JNIEXPORT void JNICALL Java_Reactor_reactor_1run(JNIEnv* env, jobject _this, jlo
 JNIEXPORT jint JNICALL Java_Reactor_open(JNIEnv* env, jobject _this, jstring jpath, jint flags) {
   printf("[C] Java_Reactor_open\n");
   const char* path = (*env)->GetStringUTFChars(env, jpath, NULL);
-    assert(path != NULL, "Error trying to get UTFChars from file path");
+  assert(path != NULL, "Error trying to get UTFChars from file path");
 
-    int fd = open(path, flags);
+  int fd = open(path, flags);
 
-    (*env)->ReleaseStringUTFChars(env, jpath, path);
-    assert(fd >= 0, "Error while trying to call open");
+  (*env)->ReleaseStringUTFChars(env, jpath, path);
+  assert(fd >= 0, "Error while trying to call open");
 
-    return (jint)fd;
+  return (jint)fd;
 }
 
 JNIEXPORT void JNICALL Java_Reactor_close(JNIEnv* env, jobject _this, jint fd) {
@@ -200,33 +200,33 @@ JNIEXPORT jlong JNICALL Java_Reactor_file_1read(
 JNIEXPORT jlong JNICALL Java_Reactor_file_1write(
   JNIEnv* env, jobject _this, jlong reactor_ptr, jint fd, jobject jbuffer, jint length, jint offset, jobject on_complete
 ) {
-    printf("[C] Java_Reactor_file_1write\n");
-    reactor_t* r = (reactor_t*) reactor_ptr;
+  printf("[C] Java_Reactor_file_1write\n");
+  reactor_t* r = (reactor_t*) reactor_ptr;
 
-    void* buffer_ptr = (*env)->GetDirectBufferAddress(env, jbuffer);
-    assert(buffer_ptr != NULL, "Error trying to get Direct Buffer address");
+  void* buffer_ptr = (*env)->GetDirectBufferAddress(env, jbuffer);
+  assert(buffer_ptr != NULL, "Error trying to get Direct Buffer address");
 
-    task_t* task = malloc(sizeof(task_t));
-    assert(task != NULL, "Error while trying to alloc task");
+  task_t* task = malloc(sizeof(task_t));
+  assert(task != NULL, "Error while trying to alloc task");
 
-    task->on_complete = (*env)->NewGlobalRef(env, on_complete);
-    task->user_data = (*env)->NewGlobalRef(env, jbuffer);
-    task->operation_type = WRITE_FILE_OP;
+  task->on_complete = (*env)->NewGlobalRef(env, on_complete);
+  task->user_data = (*env)->NewGlobalRef(env, jbuffer);
+  task->operation_type = WRITE_FILE_OP;
 
-    struct io_uring_sqe* sqe = io_uring_get_sqe(&r->queue);
-    assert(sqe != NULL, "Error while trying to get submission queue entry");
+  struct io_uring_sqe* sqe = io_uring_get_sqe(&r->queue);
+  assert(sqe != NULL, "Error while trying to get submission queue entry");
 
-    io_uring_prep_write(sqe, fd, buffer_ptr, length, offset);
+  io_uring_prep_write(sqe, fd, buffer_ptr, length, offset);
 
-    sqe->user_data = (uint64_t) task;
+  sqe->user_data = (uint64_t) task;
 
-    int e = io_uring_submit(&r->queue);
-    assert(e != -1, "Error while trying to io_uring_submit");
+  int e = io_uring_submit(&r->queue);
+  assert(e != -1, "Error while trying to io_uring_submit");
 
-    (*env)->DeleteLocalRef(env, on_complete);
-    (*env)->DeleteLocalRef(env, jbuffer);
+  (*env)->DeleteLocalRef(env, on_complete);
+  (*env)->DeleteLocalRef(env, jbuffer);
 
-    return (jlong) task;
+  return (jlong) task;
 }
 
 JNIEXPORT jint JNICALL Java_Reactor_create_1eventfd(JNIEnv* _env, jobject _this) {
