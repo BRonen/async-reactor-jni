@@ -1,7 +1,7 @@
-import java.util.function.BiConsumer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Random;
+import java.util.function.BiConsumer;
+import java.util.function.LongConsumer;
 
 public class Reactor {
     public static final int EPOLLIN  = 0x001;
@@ -21,10 +21,9 @@ public class Reactor {
     public native long file_write(long reactor_ptr, int fd, ByteBuffer buffer, int length, int offset,
                                   BiConsumer<ByteBuffer, Integer> callbackBiConsumer);
 
-    // public native int create_eventfd();
-    // public native void free_eventfd(int eventfd);
-    // public native void inc_eventfd(int eventfd);
-    // public native long read_eventfd(int eventfd);
+    public native int create_eventfd();
+    public native void trigger_eventfd(int eventfd, long value);
+    public native void listen_eventfd(long reactor_ptr, int eventfd, LongConsumer callback);
 
     static {
         System.loadLibrary("reactor");
@@ -32,7 +31,6 @@ public class Reactor {
 
     public static void main(String[] args) {
         Reactor r = new Reactor();
-        // Random rand = new Random();
 
         long reactor_ptr = r.create_reactor(16);
         int fd = r.open("./test.txt", Reactor.RDWR);
@@ -73,61 +71,21 @@ public class Reactor {
 
         r.file_read(reactor_ptr, fd, 16, 0, callback2);
 
-        r.reactor_run(reactor_ptr, 0);
-        r.reactor_run(reactor_ptr, 0);
-        r.reactor_run(reactor_ptr, 0);
-        r.reactor_run(reactor_ptr, 0);
-        r.reactor_run(reactor_ptr, 0);
-        r.reactor_run(reactor_ptr, 0);
+        r.reactor_run(reactor_ptr, 2000);
+        r.reactor_run(reactor_ptr, 2000);
+        r.reactor_run(reactor_ptr, 2000);
+
+        int efd = r.create_eventfd();
+
+        r.listen_eventfd(reactor_ptr, efd, (value) -> { System.out.println("[Java] event listener: " + value); });
+
+        r.reactor_run(reactor_ptr, 2000);
+
+        r.trigger_eventfd(efd, 200);
+
+        r.reactor_run(reactor_ptr, 2000);
 
         r.close(fd);
         r.free_reactor(reactor_ptr);
-
-        // int efd1 = reactor.create_eventfd();
-        // BiConsumer<Integer, Integer> wcb1 = (fd, events) -> {
-        //     long value = reactor.read_eventfd(fd);
-        //     System.out.println("Value of ping - 1: " + value);
-        // };
-        // long w1 = reactor.create_watcher(reactor_ptr, efd1, Reactor.EPOLLIN, wcb1);
-
-        // int efd2 = reactor.create_eventfd();
-        // BiConsumer<Integer, Integer> wcb2 = (fd, events) -> {
-        //     long value = reactor.read_eventfd(fd);
-        //     System.out.println("Value of ping - 2: " + value);
-        // };
-        // long w2 = reactor.create_watcher(reactor_ptr, efd2, Reactor.EPOLLIN, wcb2);
-
-        // Thread tt1 = new Thread(() -> {
-        //         try {
-        //             while (true) {
-        //                 Thread.sleep(1200 + rand.nextInt(1000));
-        //                 reactor.inc_eventfd(efd1);
-        //                 System.out.println("[Background - 1] incremented eventfd");
-        //             }
-        //         } catch (InterruptedException e) {
-        //             throw new RuntimeException(e);
-        //         }
-        // });
-
-        // tt1.start();
-
-        // Thread tt2 = new Thread(() -> {
-        //         try {
-        //             while (true) {
-        //                 Thread.sleep(1200 + rand.nextInt(1000));
-        //                 reactor.inc_eventfd(efd2);
-        //                 System.out.println("[Background - 2] incremented eventfd");
-        //             }
-        //         } catch (InterruptedException e) {
-        //             throw new RuntimeException(e);
-        //         }
-        // });
-
-        // tt2.start();
-
-        // System.out.println("[Main] Starting reactor event loop");
-        // while (true) {
-        //     reactor.reactor_run(reactor_ptr, 1000);
-        // }
     }
 }

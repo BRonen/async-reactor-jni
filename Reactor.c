@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <jni.h>
 #include <liburing.h>
+#include <poll.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,7 @@
 
 #define READ_FILE_OP 1
 #define WRITE_FILE_OP 2
+#define EVENT_OP 3
 
 void assert(int pred, char* err) {
     if (pred)
@@ -81,6 +83,7 @@ JNIEXPORT void JNICALL Java_Reactor_reactor_1run(JNIEnv* env, jobject _this, jlo
   task_t* task = (task_t*)cqe->user_data;
   assert(cqe->res >= 0, "Error returned by I/O operation");
 
+  printf("[C] Task received: %d\n", task->operation_type);
   if (task->operation_type == READ_FILE_OP || task->operation_type == WRITE_FILE_OP) {
     int buffer_length = cqe->res;
 
@@ -108,6 +111,28 @@ JNIEXPORT void JNICALL Java_Reactor_reactor_1run(JNIEnv* env, jobject _this, jlo
     (*env)->DeleteLocalRef(env, integer_class);
     (*env)->DeleteLocalRef(env, jbuffer_length);
     (*env)->DeleteLocalRef(env, callback_class);
+
+    free(task);
+  } else if (task->operation_type == EVENT_OP) {
+    int efd = (int) (long) task->user_data;
+
+    uint64_t value = 0;
+    int e = read(efd, &value, sizeof(value));
+    assert(e != -1, "Error while trying to read eventfd");
+
+    jclass callback_class = (*env)->GetObjectClass(env, task->on_complete);
+    assert(callback_class != NULL, "Error while trying to get callback class");
+
+    jmethodID callback_id = (*env)->GetMethodID(env, callback_class, "accept", "(J)V");
+    assert(callback_id != NULL, "Error while trying to get callback method id");
+
+    (*env)->CallVoidMethod(env, task->on_complete, callback_id, value);
+
+    (*env)->DeleteGlobalRef(env, task->on_complete);
+    (*env)->DeleteLocalRef(env, callback_class);
+
+    int ec = close(efd);
+    assert(ec != -1, "Error while trying to close eventfd");
 
     free(task);
   }
@@ -204,46 +229,40 @@ JNIEXPORT jlong JNICALL Java_Reactor_file_1write(
     return (jlong) task;
 }
 
-/* JNIEXPORT void JNICALL Java_Reactor_free_1task(JNIEnv* env, jobject _this, jlong task) { */
-/*   printf("[C] Java_Reactor_free_1watcher\n"); */
-/*   task_t* t = (task_t*) task; */
+JNIEXPORT jint JNICALL Java_Reactor_create_1eventfd(JNIEnv* _env, jobject _this) {
+  printf("[C] Java_Reactor_create_1eventfd\n");
+  int efd = eventfd(0, EFD_NONBLOCK);
+  assert(efd != -1, "Error while trying to open event file descriptor");
 
-/*   int e = close(t->user_data); */
-/*   assert(e != -1, "Error while trying to free watcher file descriptor"); */
+  return efd;
+}
 
-/*   (*env)->DeleteGlobalRef(env, w->callback); */
+JNIEXPORT void JNICALL Java_Reactor_trigger_1eventfd(JNIEnv* _env, jobject _this, jint efd, jlong value) {
+  printf("[C] Java_Reactor_trigger_1eventfd - %d\n", efd);
 
-/*   free(w); */
-/* } */
+  int e = write(efd, &value, sizeof(value));
+  assert(e != -1, "Error while trying to inc eventfd");
+}
 
-/* JNIEXPORT jint JNICALL Java_Reactor_create_1eventfd(JNIEnv* _env, jobject _this) { */
-/*   printf("[C] Java_Reactor_create_1eventfd\n"); */
-/*   int efd = eventfd(0, EFD_NONBLOCK); */
-/*   assert(efd != -1, "Error while trying to open event file descriptor"); */
+JNIEXPORT void JNICALL Java_Reactor_listen_1eventfd(JNIEnv* env, jobject _this, jlong reactor_ptr, jint efd, jobject on_complete) {
+  printf("[C] Java_Reactor_listen_1eventfd - %d\n", efd);
 
-/*   return efd; */
-/* } */
+  reactor_t* r = (reactor_t*) reactor_ptr;
 
-/* JNIEXPORT void JNICALL Java_Reactor_free_1eventfd(JNIEnv* _env, jobject _this, jint efd) { */
-/*   printf("[C] Java_Reactor_free_1eventfd\n"); */
-/*   int e = close(efd); */
-/*   assert(e != -1, "Error while trying to close eventfd"); */
-/* } */
+  task_t* task = malloc(sizeof(task_t));
+  assert(task != NULL, "Error while trying to alloc watcher");
 
-/* JNIEXPORT void JNICALL Java_Reactor_inc_1eventfd(JNIEnv* _env, jobject _this, jint efd) { */
-/*   printf("[C] Java_Reactor_inc_1eventfd - %d\n", efd); */
-/*   uint64_t value = 1; */
+  struct io_uring_sqe* sqe = io_uring_get_sqe(&r->queue);
+  assert(sqe != NULL, "Error while trying to get submission queue entry");
 
-/*   int e = write(efd, &value, sizeof(value)); */
-/*   assert(e != -1, "Error while trying to inc eventfd"); */
-/* } */
+  task->on_complete = (*env)->NewGlobalRef(env, on_complete);
+  task->user_data = (void*) (long) efd;
+  task->operation_type = EVENT_OP;
 
-/* JNIEXPORT jlong JNICALL Java_Reactor_read_1eventfd(JNIEnv* _env, jobject _this, jint efd) { */
-/*   printf("[C] Java_Reactor_read_1eventfd - %d\n", efd); */
-/*   uint64_t value; */
+  io_uring_prep_poll_add(sqe, efd, POLLIN);
 
-/*   int e = read(efd, &value, sizeof(value)); */
-/*   assert(e != -1, "Error while trying to read eventfd"); */
+  sqe->user_data = (uint64_t) task;
 
-/*   return value; */
-/* } */
+  int e = io_uring_submit(&r->queue);
+  assert(e != -1, "Error while trying to io_uring_submit");
+}
