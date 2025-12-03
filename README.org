@@ -1,3 +1,5 @@
 * Async Reactor JNI
 
-Native implementation of a [[https://en.wikipedia.org/wiki/Reactor_pattern][Reactor]] with a [[https://en.wikipedia.org/wiki/Java_Native_Interface][Java Native Interface]].
+Native implementation of a [[https://en.wikipedia.org/wiki/Reactor_pattern][Reactor]] using [[https://en.wikipedia.org/wiki/Io_uring][IO Uring]] and exporting a [[https://en.wikipedia.org/wiki/Java_Native_Interface][Java Native Interface]].
+
+[WIP - May be broken]
