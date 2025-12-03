@@ -8,6 +8,16 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
+        clangdConfig = pkgs.writeText ".clangd" ''
+          CompileFlags:
+            Add:
+              - "-I${pkgs.glibc.dev}/include"
+              - "-I${pkgs.openjdk21}/include"
+              - "-I${pkgs.openjdk21}/include/linux"
+              - "-I${pkgs.gcc}/resource-root/include"
+              - "-I${pkgs.liburing.dev}/include"
+              - "-I/usr/src/linux-headers-$(uname -r)/include/linux"
+        '';
       in
         {
           packages.libreactor = pkgs.stdenv.mkDerivation {
@@ -34,6 +44,14 @@
             postBuild = "rm -f Reactor.h";
             JAVA_HOME = pkgs.openjdk21;
             NIX_LD_LIBRARY_PATH = [ "$out/lib" ];
+          };
+
+          devShell = pkgs.mkShell {
+            buildInputs = with pkgs; [ gcc openjdk21 liburing.dev ];
+            shellHook = ''
+              cp ${clangdConfig} ./.clangd
+              export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd);
+            '';
           };
         }
     );
