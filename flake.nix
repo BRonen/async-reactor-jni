@@ -47,7 +47,7 @@
           };
 
           devShell = pkgs.mkShell {
-            buildInputs = with pkgs; [ gcc openjdk21 liburing.dev ];
+            buildInputs = with pkgs; [ clojure gcc openjdk21 liburing.dev ];
             shellHook = ''
               cp ${clangdConfig} ./.clangd
               export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd);
