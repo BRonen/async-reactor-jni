@@ -46,7 +46,7 @@ typedef struct {
 
 // Reactor
 
-JNIEXPORT ptr_t JNICALL Java_Reactor_create_1reactor(JNIEnv* _env, jobject _this, jint ring_size) {
+JNIEXPORT ptr_t JNICALL Java_Reactor_create_1reactor(JNIEnv* _env, jclass this, jint ring_size) {
   printf("[C] Java_Reactor_create_1reactor\n");
   reactor_t* reactor = malloc(sizeof(reactor_t));
   assert(reactor != NULL, "Error while trying to alloc reactor");
@@ -58,7 +58,7 @@ JNIEXPORT ptr_t JNICALL Java_Reactor_create_1reactor(JNIEnv* _env, jobject _this
   return (long) reactor;
 }
 
-JNIEXPORT void JNICALL Java_Reactor_free_1reactor(JNIEnv* _env, jobject _this, ptr_t reactor_ptr) {
+JNIEXPORT void JNICALL Java_Reactor_free_1reactor(JNIEnv* _env, jclass this, ptr_t reactor_ptr) {
   printf("[C] Java_Reactor_free_1reactor\n");
   reactor_t* reactor = (reactor_t*) reactor_ptr;
 
@@ -69,7 +69,7 @@ JNIEXPORT void JNICALL Java_Reactor_free_1reactor(JNIEnv* _env, jobject _this, p
 
 // Event FD
 
-JNIEXPORT fd_t JNICALL Java_Reactor_create_1eventfd(JNIEnv* _env, jobject _this, jint flags) {
+JNIEXPORT fd_t JNICALL Java_Reactor_create_1eventfd(JNIEnv* _env, jclass this, jint flags) {
   printf("[C] Java_Reactor_create_1eventfd\n");
   fd_t efd = eventfd(0, flags);
   assert(efd != -1, "Error while trying to open event file descriptor");
@@ -77,7 +77,7 @@ JNIEXPORT fd_t JNICALL Java_Reactor_create_1eventfd(JNIEnv* _env, jobject _this,
   return efd;
 }
 
-JNIEXPORT void JNICALL Java_Reactor_trigger_1eventfd(JNIEnv* _env, jobject _this, fd_t efd, jlong value) {
+JNIEXPORT void JNICALL Java_Reactor_trigger_1eventfd(JNIEnv* _env, jclass this, fd_t efd, jlong value) {
   printf("[C] Java_Reactor_trigger_1eventfd - %d\n", efd);
 
   int e = write(efd, &value, sizeof(value));
@@ -85,7 +85,7 @@ JNIEXPORT void JNICALL Java_Reactor_trigger_1eventfd(JNIEnv* _env, jobject _this
 }
 
 JNIEXPORT void JNICALL Java_Reactor_listen_1eventfd(
-  JNIEnv* env, jobject _this, ptr_t reactor_ptr, fd_t efd, jobject on_complete
+  JNIEnv* env, jclass this, ptr_t reactor_ptr, fd_t efd, jobject on_complete
 ) {
   printf("[C] Java_Reactor_listen_1eventfd - %d\n", efd);
 
@@ -112,7 +112,7 @@ JNIEXPORT void JNICALL Java_Reactor_listen_1eventfd(
 // Timer FD
 
 JNIEXPORT ptr_t JNICALL Java_Reactor_create_1timer(
-  JNIEnv *env, jobject _this, ptr_t reactor_ptr, jint value, jint interval,
+  JNIEnv *env, jclass this, ptr_t reactor_ptr, jint value, jint interval,
   jint clock_type, jint fd_flags, jint timer_flags, jobject on_complete
 ) {
   printf("[C] Java_Reactor_create_1timer\n");
@@ -158,7 +158,7 @@ JNIEXPORT ptr_t JNICALL Java_Reactor_create_1timer(
   return (ptr_t) task;
 }
 
-JNIEXPORT void JNICALL Java_Reactor_free_1timer(JNIEnv *env, jobject _this, ptr_t timer) {
+JNIEXPORT void JNICALL Java_Reactor_free_1timer(JNIEnv *env, jclass this, ptr_t timer) {
   printf("[C] Java_Reactor_free_1timer\n");
   task_t *timer_task = (task_t*) timer;
 
@@ -176,7 +176,7 @@ JNIEXPORT void JNICALL Java_Reactor_free_1timer(JNIEnv *env, jobject _this, ptr_
 
 // Files FD
 
-JNIEXPORT fd_t JNICALL Java_Reactor_open(JNIEnv* env, jobject _this, jstring jpath, jint flags) {
+JNIEXPORT fd_t JNICALL Java_Reactor_open(JNIEnv* env, jclass this, jstring jpath, jint flags) {
   printf("[C] Java_Reactor_open\n");
   const char* path = (*env)->GetStringUTFChars(env, jpath, NULL);
   assert(path != NULL, "Error trying to get UTFChars from file path");
@@ -189,14 +189,14 @@ JNIEXPORT fd_t JNICALL Java_Reactor_open(JNIEnv* env, jobject _this, jstring jpa
   return (fd_t)fd;
 }
 
-JNIEXPORT void JNICALL Java_Reactor_close(JNIEnv* _env, jobject _this, fd_t fd) {
+JNIEXPORT void JNICALL Java_Reactor_close(JNIEnv* _env, jclass this, fd_t fd) {
   printf("[C] Java_Reactor_close\n");
   int e = close(fd);
   assert(e != -1, "Error trying to close fd");
 }
 
 JNIEXPORT ptr_t JNICALL Java_Reactor_file_1read(
-  JNIEnv* env, jobject _this, ptr_t reactor_ptr, fd_t fd, jint length, jint offset, jobject on_complete
+  JNIEnv* env, jclass this, ptr_t reactor_ptr, fd_t fd, jint length, jint offset, jobject on_complete
 ) {
   printf("[C] Java_Reactor_file_1read\n");
   reactor_t* reactor = (reactor_t*) reactor_ptr;
@@ -235,7 +235,7 @@ JNIEXPORT ptr_t JNICALL Java_Reactor_file_1read(
 }
 
 JNIEXPORT ptr_t JNICALL Java_Reactor_file_1write(
-  JNIEnv* env, jobject _this, ptr_t reactor_ptr, fd_t fd, jobject jbuffer, jint length, jint offset, jobject on_complete
+  JNIEnv* env, jclass this, ptr_t reactor_ptr, fd_t fd, jobject jbuffer, jint length, jint offset, jobject on_complete
 ) {
   printf("[C] Java_Reactor_file_1write\n");
   reactor_t* reactor = (reactor_t*) reactor_ptr;
@@ -349,7 +349,7 @@ void reactor_run_timer(JNIEnv* env, reactor_t *reactor, task_t* task) {
   assert(io_uring_submit(&reactor->queue) != -1, "Error while trying to io_uring_submit");
 }
 
-JNIEXPORT void JNICALL Java_Reactor_reactor_1run(JNIEnv* env, jobject _this, ptr_t reactor_ptr, jint timeout) {
+JNIEXPORT void JNICALL Java_Reactor_reactor_1run(JNIEnv* env, jclass this, ptr_t reactor_ptr, jint timeout) {
   printf("[C] Java_Reactor_reactor_1run\n");
   reactor_t* reactor = (reactor_t*) reactor_ptr;
   struct io_uring_cqe* cqe;
