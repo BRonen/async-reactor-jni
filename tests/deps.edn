@@ -1,0 +1,13 @@
+{:paths []
+
+ :deps {org.clojure/clojure {:mvn/version "1.12.3"}
+
+        reactor/reactor {:local/root "../result"}}
+
+ :aliases
+ {:test
+  {:jvm-opts      ["-Djava.library.path=../result/lib"]
+   :extra-deps    {lambdaisland/kaocha {:mvn/version "1.91.1392"}}
+   :extra-paths   ["test"]
+   :exec-fn       kaocha.runner/exec-fn
+   :main-opts     ["-m" "kaocha.runner"]}}}

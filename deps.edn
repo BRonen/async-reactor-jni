@@ -1,4 +1,0 @@
-{:paths ["."]
-
- :aliases
- {:jni {:jvm-opts ["-Djava.library.path=."]}}}

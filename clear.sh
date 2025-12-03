@@ -1,1 +1,0 @@
-rm *.so *.h *.class

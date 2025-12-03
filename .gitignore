@@ -1,6 +1,7 @@
 **/*.h
 **/*.class
 **/*.so
+result/
 .direnv/
 .cpcache/
 .nrepl-port
