@@ -1,1 +1,1 @@
-((clojure-mode (cider-clojure-cli-aliases . ":jni")))
+((clojure-mode (cider-clojure-cli-aliases . ":test")))
